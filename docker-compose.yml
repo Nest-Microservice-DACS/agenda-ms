@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  agenda-db:
+    container_name: agenda-db
+    image: postgres:16.2
+    restart: always
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    ports:
+      - 5436:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=agenda_db
