@@ -49,7 +49,39 @@ export class AgendaService
 
   async create(createTurnoDto: CreateTurnoDto) {
     try {
-      return await this.agenda_slot.create({ data: createTurnoDto });
+      // 1. Buscar todos los slots del quirófano en el rango de tiempo
+      const inicio = new Date(createTurnoDto.startTime);
+      const fin = new Date(createTurnoDto.endTime);
+      const slotsEnRango = await this.agenda_slot.findMany({
+        where: {
+          quirofanoId: createTurnoDto.quirofanoId,
+          startTime: { lt: fin },
+          endTime: { gt: inicio },
+        },
+        orderBy: { startTime: 'asc' },
+      });
+
+      // 2. Verificar que todos estén libres
+      const todosLibres = slotsEnRango.every(slot => slot.status === 'AVAILABLE');
+      if (!todosLibres || slotsEnRango.length === 0) {
+        throw new RpcException({
+          status: HttpStatus.CONFLICT,
+          message: 'No hay suficientes slots disponibles para el turno solicitado',
+        });
+      }
+
+      // 3. Actualizar todos los slots a BOOKED y asociarles los datos del turno
+      const idsAReservar = slotsEnRango.map(slot => slot.id);
+      await this.agenda_slot.updateMany({
+        where: { id: { in: idsAReservar } },
+        data: {
+          ...createTurnoDto,
+          status: 'BOOKED',
+        },
+      });
+
+      // Retornar los slots reservados
+      return await this.agenda_slot.findMany({ where: { id: { in: idsAReservar } } });
     } catch (error) {
       this.logger.error('Error al crear turno', error);
       throw new RpcException({

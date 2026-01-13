@@ -17,15 +17,15 @@ export class CreateTurnoDto {
 
   @IsDateString()
   @Type(() => Date)
-  startTime: Date;
+  startTime: string;
 
   @IsDateString()
   @Type(() => Date)
-  endTime: Date;
+  endTime: string;
 
-  @IsOptional()
-  @IsEnum(AgendaStatusList, { message: `Possible status values are ${Object.values(AgendaStatusList).join(", ")}` })
-  status: AgendaStatus = AgendaStatus.BOOKED;
+  // @IsOptional()
+  // @IsEnum(AgendaStatusList, { message: `Possible status values are ${Object.values(AgendaStatusList).join(", ")}` })
+  // status: AgendaStatus = AgendaStatus.BOOKED;
 
   @IsNumber()
   @IsPositive()
