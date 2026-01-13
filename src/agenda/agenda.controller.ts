@@ -17,14 +17,14 @@ export class AgendaController {
     return this.agendaService.create(createTurnoDto);
   }
 
-  @MessagePattern({ cmd: 'find_all_turnos' })
+  @MessagePattern({ cmd: 'get_turnos' })
   findAll(@Payload() turnoPaginationDto: TurnoPaginationDto) {
     return this.agendaService.findAll(turnoPaginationDto);
   }
 
-  @MessagePattern({ cmd: 'find_one_turno' })
-  findOne(@Payload() id: number) {
-    return this.agendaService.findById(id);
+  @MessagePattern({ cmd: 'get_turno_by_cirugia_id' })
+  findOne(@Payload() cirugiaId: number) {
+    return this.agendaService.findById(cirugiaId);
   }
 
   @MessagePattern({ cmd: 'update_turno' })
@@ -40,5 +40,5 @@ export class AgendaController {
   @MessagePattern({ cmd: 'remove_turno' })
   remove(@Payload() cirugiaId: number) {
     return this.agendaService.remove(cirugiaId);
-  } 
+  }
 }

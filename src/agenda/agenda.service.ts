@@ -62,12 +62,22 @@ export class AgendaService
 
   async findAll(turnoPaginationDto: TurnoPaginationDto) {
     try {
-      const totalPages = await this.agenda_slot.count({
-        where: {
-          status: turnoPaginationDto.status,
-        },
-      });
+      // filtro dinámico
+      const where: any = {};
+      if (
+        turnoPaginationDto.status !== undefined &&
+        turnoPaginationDto.status !== null
+      ) {
+        where.status = turnoPaginationDto.status;
+      }
+      if (
+        turnoPaginationDto.quirofanoId !== undefined &&
+        turnoPaginationDto.quirofanoId !== null
+      ) {
+        where.quirofanoId = turnoPaginationDto.quirofanoId;
+      }
 
+      const totalPages = await this.agenda_slot.count({ where });
       const currentPage = turnoPaginationDto.page;
       const pageSize = turnoPaginationDto.size;
 
@@ -75,9 +85,7 @@ export class AgendaService
         data: await this.agenda_slot.findMany({
           skip: (currentPage - 1) * pageSize,
           take: pageSize,
-          where: {
-            status: turnoPaginationDto.status,
-          },
+          where,
         }),
         meta: {
           total: totalPages,
