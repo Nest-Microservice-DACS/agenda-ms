@@ -10,7 +10,12 @@ import { PrismaClient } from 'generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { RpcException } from '@nestjs/microservices';
-import { CreateTurnoDto, TurnoPaginationDto, UpdateTurnoDto } from './dto';
+import {
+  ChangeTurnoStatusDto,
+  CreateTurnoDto,
+  TurnoPaginationDto,
+  UpdateTurnoDto,
+} from './dto';
 
 @Injectable()
 export class AgendaService
@@ -42,34 +47,52 @@ export class AgendaService
     this.logger.log('Prisma desconectado de la base de datos');
   }
 
-  async create(data: CreateTurnoDto) {
-    return this.agenda_slot.create({ data });
+  async create(createTurnoDto: CreateTurnoDto) {
+    try {
+      return await this.agenda_slot.create({ data: createTurnoDto });
+    } catch (error) {
+      this.logger.error('Error al crear turno', error);
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Error al crear turno',
+        error: error?.message || error,
+      });
+    }
   }
 
   async findAll(turnoPaginationDto: TurnoPaginationDto) {
-    const totalPages = await this.agenda_slot.count({
-      where: {
-        // status: ,
-      },
-    });
-
-    const currentPage = turnoPaginationDto.page;
-    const pageSize = turnoPaginationDto.size;
-
-    return {
-      data: await this.agenda_slot.findMany({
-        skip: (currentPage - 1) * pageSize,
-        take: pageSize,
+    try {
+      const totalPages = await this.agenda_slot.count({
         where: {
-        //  status: turnoPaginationDto.status,
+          status: turnoPaginationDto.status,
         },
-      }),
-      meta: {
-        total: totalPages,
-        page: currentPage,
-        lastPage: Math.ceil(totalPages / pageSize),
-      },
-    };
+      });
+
+      const currentPage = turnoPaginationDto.page;
+      const pageSize = turnoPaginationDto.size;
+
+      return {
+        data: await this.agenda_slot.findMany({
+          skip: (currentPage - 1) * pageSize,
+          take: pageSize,
+          where: {
+            status: turnoPaginationDto.status,
+          },
+        }),
+        meta: {
+          total: totalPages,
+          page: currentPage,
+          lastPage: Math.ceil(totalPages / pageSize),
+        },
+      };
+    } catch (error) {
+      this.logger.error('Error al obtener turnos', error);
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Error al obtener turnos',
+        error: error?.message || error,
+      });
+    }
   }
 
   async findById(id: number) {
@@ -86,26 +109,58 @@ export class AgendaService
   }
 
   async update(id: number, data: UpdateTurnoDto) {
-    return this.agenda_slot.update({
-      where: { id },
-      data,
-    });
+    try {
+      return await this.agenda_slot.update({
+        where: { id },
+        data,
+      });
+    } catch (error) {
+      this.logger.error(`Error al actualizar turno con ID ${id}`, error);
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: `Error al actualizar turno con ID ${id}`,
+        error: error?.message || error,
+      });
+    }
   }
 
   async changeStatus(changeTurnoStatusDto: ChangeTurnoStatusDto) {
-    const { id, status } = changeTurnoStatusDto;
-    const turno = await this.agenda_slot.findUnique({ where: { id } });
+    const { cirugiaId, status } = changeTurnoStatusDto;
+    const turno = await this.agenda_slot.findFirst({ where: { cirugiaId } });
 
     if (!turno) {
       throw new RpcException({
         status: HttpStatus.NOT_FOUND,
-        message: `Turno con ID ${id} no encontrado`,
+        message: `Turno con cirugiaId ${cirugiaId} no encontrado`,
       });
     }
     if (turno.status === status) {
       return turno;
     }
 
-    return this.agenda_slot.update({ where: { id }, data: { status: status } });
+    await this.agenda_slot.updateMany({
+      where: { cirugiaId },
+      data: { status },
+    });
+
+    return this.agenda_slot.findMany({ where: { cirugiaId } });
+  }
+
+  async remove(cirugiaId: number) {
+    const turno = await this.agenda_slot.findFirst({ where: { cirugiaId } });
+
+    if (!turno) {
+      throw new RpcException({
+        status: HttpStatus.NOT_FOUND,
+        message: `Turno con cirugiaId ${cirugiaId} no encontrado`,
+      });
+    }
+    await this.agenda_slot.updateMany({
+      where: { cirugiaId },
+      data: { cirugiaId: null, status: 'AVAILABLE', updatedAt: null },
+    });
+    return {
+      message: `Turno con cirugiaId ${cirugiaId} liberado exitosamente`,
+    };
   }
 }

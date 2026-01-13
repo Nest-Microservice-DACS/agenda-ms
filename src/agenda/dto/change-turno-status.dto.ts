@@ -1,13 +1,14 @@
-// export class ChangeTurnoStatusDto {
-//    @IsNumber()
-//   @IsPositive()
-//   id: number;
+import { IsEnum, IsNumber, IsPositive } from 'class-validator';
+import { AgendaStatus } from 'generated/prisma/client';
+import { AgendaStatusList } from '../enum/agenda.enum';
 
-//   @IsEnum(PacienteStatusList, {
-//     message: 'Status must be one of ACTIVE, INACTIVE, SUSPENDED',
-//   })
-//   status: PacienteStatus;
-// }
+export class ChangeTurnoStatusDto {
+  @IsNumber()
+  @IsPositive()
+  cirugiaId: number;
 
- 
-// }
+  @IsEnum(AgendaStatusList, {
+    message: `Possible status values are ${Object.values(AgendaStatusList).join(', ')}`,
+  })
+  status: AgendaStatus;
+}
