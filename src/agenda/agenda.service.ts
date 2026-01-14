@@ -62,26 +62,31 @@ export class AgendaService
       });
 
       // 2. Verificar que todos estén libres
-      const todosLibres = slotsEnRango.every(slot => slot.status === 'AVAILABLE');
+      const todosLibres = slotsEnRango.every(
+        (slot) => slot.status === 'AVAILABLE',
+      );
       if (!todosLibres || slotsEnRango.length === 0) {
         throw new RpcException({
           status: HttpStatus.CONFLICT,
-          message: 'No hay suficientes slots disponibles para el turno solicitado',
+          message:
+            'No hay suficientes slots disponibles para el turno solicitado',
         });
       }
 
       // 3. Actualizar todos los slots a BOOKED y asociarles los datos del turno
-      const idsAReservar = slotsEnRango.map(slot => slot.id);
+      const idsAReservar = slotsEnRango.map((slot) => slot.id);
       await this.agenda_slot.updateMany({
         where: { id: { in: idsAReservar } },
         data: {
-          ...createTurnoDto,
+          cirugiaId: createTurnoDto.cirugiaId,
           status: 'BOOKED',
         },
       });
 
       // Retornar los slots reservados
-      return await this.agenda_slot.findMany({ where: { id: { in: idsAReservar } } });
+      return await this.agenda_slot.findMany({
+        where: { id: { in: idsAReservar } },
+      });
     } catch (error) {
       this.logger.error('Error al crear turno', error);
       throw new RpcException({
@@ -121,7 +126,12 @@ export class AgendaService
 
       // Solo agregar skip/take si están definidos y son números válidos
       const findManyOptions: any = { where };
-      if (typeof currentPage === 'number' && typeof pageSize === 'number' && !isNaN(currentPage) && !isNaN(pageSize)) {
+      if (
+        typeof currentPage === 'number' &&
+        typeof pageSize === 'number' &&
+        !isNaN(currentPage) &&
+        !isNaN(pageSize)
+      ) {
         findManyOptions.skip = (currentPage - 1) * pageSize;
         findManyOptions.take = pageSize;
       }
@@ -195,25 +205,21 @@ export class AgendaService
   }
 
   async remove(cirugiaId: number) {
-    const turno = await this.agenda_slot.findFirst({ where: { cirugiaId } });
+    const turnos = await this.agenda_slot.findMany({ where: { cirugiaId } });
 
-    if (!turno) {
+    if (!turnos || turnos.length === 0) {
       throw new RpcException({
         status: HttpStatus.NOT_FOUND,
-        message: `Turno con cirugiaId ${cirugiaId} no encontrado`,
+        message: `No se encontraron turnos con cirugiaId ${cirugiaId}`,
       });
     }
-    await this.agenda_slot.updateMany({
-      where: { cirugiaId },
-      data: { cirugiaId: null, status: 'AVAILABLE', updatedAt: null },
-    });
+
+    // Eliminar todos los slots con ese cirugiaId
+    await this.agenda_slot.updateMany({ where: { cirugiaId }, data: { status: 'AVAILABLE', cirugiaId: null} });
+
     return {
-      message: `Turno con cirugiaId ${cirugiaId} liberado exitosamente`,
+      message: `Todos los turnos con cirugiaId ${cirugiaId} eliminados exitosamente`,
+      cantidad: turnos.length,
     };
   }
 }
-
-
-  
-
-  
