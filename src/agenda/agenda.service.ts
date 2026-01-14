@@ -108,17 +108,25 @@ export class AgendaService
       ) {
         where.quirofanoId = turnoPaginationDto.quirofanoId;
       }
+      if (turnoPaginationDto.fechaInicio) {
+        where.startTime = { gte: new Date(turnoPaginationDto.fechaInicio) };
+      }
+      if (turnoPaginationDto.fechaFin) {
+        where.endTime = { lte: new Date(turnoPaginationDto.fechaFin) };
+      }
 
       const totalPages = await this.agenda_slot.count({ where });
       const currentPage = turnoPaginationDto.page;
       const pageSize = turnoPaginationDto.size;
 
+      // Solo agregar skip/take si están definidos y son números válidos
+      const findManyOptions: any = { where };
+      if (typeof currentPage === 'number' && typeof pageSize === 'number' && !isNaN(currentPage) && !isNaN(pageSize)) {
+        findManyOptions.skip = (currentPage - 1) * pageSize;
+        findManyOptions.take = pageSize;
+      }
       return {
-        data: await this.agenda_slot.findMany({
-          skip: (currentPage - 1) * pageSize,
-          take: pageSize,
-          where,
-        }),
+        data: await this.agenda_slot.findMany(findManyOptions),
         meta: {
           total: totalPages,
           page: currentPage,
@@ -204,3 +212,8 @@ export class AgendaService
     };
   }
 }
+
+
+  
+
+  

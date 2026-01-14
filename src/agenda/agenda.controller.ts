@@ -7,6 +7,7 @@ import {
   TurnoPaginationDto,
   UpdateTurnoDto,
 } from './dto';
+import { Cons } from 'rxjs';
 
 @Controller()
 export class AgendaController {

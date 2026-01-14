@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsDate, IsDateString, IsEnum, IsOptional } from 'class-validator';
 import { AgendaStatusList } from '../enum/agenda.enum';
 import { AgendaStatus } from 'generated/prisma/enums';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
@@ -14,4 +14,14 @@ export class TurnoPaginationDto extends PaginationDto {
   @IsOptional()
   @Type(() => Number)
   quirofanoId: number;
+
+  @IsOptional()
+  @IsDateString()
+  @Type(() => Date)
+  fechaInicio: string;
+
+  @IsOptional()
+  @IsDateString()
+  @Type(() => Date)
+  fechaFin: string;
 }
