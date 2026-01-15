@@ -92,11 +92,11 @@ npm run start:dev
 
 Este microservicio responde a mensajes TCP con los siguientes patrones principales:
 
-- `findAllPersonal`: Obtiene la lista de personal
-- `findPersonalById`: Obtiene un registro de personal por su ID
-- `createPersonal`: Crea un nuevo registro de personal
-- `updatePersonal`: Actualiza un registro de personal existente
-- `deletePersonal`: Elimina un registro de personal
+- `create_shift`: Crea un nuevo turno (shift) en un quirófano.
+- `get_shifts`: Obtiene la lista de turnos (con paginación y filtros).
+- `get_shift_by_surgery_id`: Obtiene un turno específico por el ID de la cirugía.
+- `update_shift`: Actualiza los datos de un turno existente.
+- `remove_shift`: Elimina un turno por ID de cirugía.
 
 Consulta el código fuente para ver los payloads y DTOs utilizados en cada patrón.
 
