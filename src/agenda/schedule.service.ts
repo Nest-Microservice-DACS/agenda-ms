@@ -11,14 +11,14 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { RpcException } from '@nestjs/microservices';
 import {
-  ChangeTurnoStatusDto,
-  CreateTurnoDto,
-  TurnoPaginationDto,
-  UpdateTurnoDto,
+  ChangeShiftStatusDto,
+  CreateShiftDto,
+  ShiftPaginationDto,
+  UpdateShiftDto,
 } from './dto';
 
 @Injectable()
-export class AgendaService
+export class ScheduleService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
@@ -35,26 +35,26 @@ export class AgendaService
     this.adapter = adapter;
   }
 
-  private readonly logger = new Logger(AgendaService.name);
+  private readonly logger = new Logger(ScheduleService.name);
 
   async onModuleInit() {
     await this.$connect();
-    this.logger.log('Prisma conectado a la base de datos');
+    this.logger.log('Prisma connectated to the database');
   }
 
   async onModuleDestroy() {
     await this.$disconnect();
-    this.logger.log('Prisma desconectado de la base de datos');
+    this.logger.log('Prisma disconnected from the database');
   }
 
-  async create(createTurnoDto: CreateTurnoDto) {
+  async create(createShiftDto: CreateShiftDto) {
     try {
       // 1. Buscar todos los slots del quirófano en el rango de tiempo
-      const inicio = new Date(createTurnoDto.startTime);
-      const fin = new Date(createTurnoDto.endTime);
-      const slotsEnRango = await this.agenda_slot.findMany({
+      const inicio = new Date(createShiftDto.startTime);
+      const fin = new Date(createShiftDto.endTime);
+      const slotsEnRango = await this.shift_slot.findMany({
         where: {
-          quirofanoId: createTurnoDto.quirofanoId,
+          operatingRoomId: createShiftDto.operatingRoomId,
           startTime: { lt: fin },
           endTime: { gt: inicio },
         },
@@ -75,16 +75,16 @@ export class AgendaService
 
       // 3. Actualizar todos los slots a BOOKED y asociarles los datos del turno
       const idsAReservar = slotsEnRango.map((slot) => slot.id);
-      await this.agenda_slot.updateMany({
+      await this.shift_slot.updateMany({
         where: { id: { in: idsAReservar } },
         data: {
-          cirugiaId: createTurnoDto.cirugiaId,
+          surgeryId: createShiftDto.surgeryId,
           status: 'BOOKED',
         },
       });
 
       // Retornar los slots reservados
-      return await this.agenda_slot.findMany({
+      return await this.shift_slot.findMany({
         where: { id: { in: idsAReservar } },
       });
     } catch (error) {
@@ -97,32 +97,32 @@ export class AgendaService
     }
   }
 
-  async findAll(turnoPaginationDto: TurnoPaginationDto) {
+  async findAll(shiftPaginationDto: ShiftPaginationDto) {
     try {
       // filtro dinámico
       const where: any = {};
       if (
-        turnoPaginationDto.status !== undefined &&
-        turnoPaginationDto.status !== null
+        shiftPaginationDto.status !== undefined &&
+        shiftPaginationDto.status !== null
       ) {
-        where.status = turnoPaginationDto.status;
+        where.status = shiftPaginationDto.status;
       }
       if (
-        turnoPaginationDto.quirofanoId !== undefined &&
-        turnoPaginationDto.quirofanoId !== null
+        shiftPaginationDto.operatingRoomId !== undefined &&
+        shiftPaginationDto.operatingRoomId !== null
       ) {
-        where.quirofanoId = turnoPaginationDto.quirofanoId;
+        where.operatingRoomId = shiftPaginationDto.operatingRoomId;
       }
-      if (turnoPaginationDto.fechaInicio) {
-        where.startTime = { gte: new Date(turnoPaginationDto.fechaInicio) };
+      if (shiftPaginationDto.startDate) {
+        where.startTime = { gte: new Date(shiftPaginationDto.startDate) };
       }
-      if (turnoPaginationDto.fechaFin) {
-        where.endTime = { lte: new Date(turnoPaginationDto.fechaFin) };
+      if (shiftPaginationDto.endDate) {
+        where.endTime = { lte: new Date(shiftPaginationDto.endDate) };
       }
 
-      const totalPages = await this.agenda_slot.count({ where });
-      const currentPage = turnoPaginationDto.page;
-      const pageSize = turnoPaginationDto.size;
+      const totalPages = await this.shift_slot.count({ where });
+      const currentPage = shiftPaginationDto.page;
+      const pageSize = shiftPaginationDto.size;
 
       // Solo agregar skip/take si están definidos y son números válidos
       const findManyOptions: any = { where };
@@ -136,7 +136,7 @@ export class AgendaService
         findManyOptions.take = pageSize;
       }
       return {
-        data: await this.agenda_slot.findMany(findManyOptions),
+        data: await this.shift_slot.findMany(findManyOptions),
         meta: {
           total: totalPages,
           page: currentPage,
@@ -144,82 +144,82 @@ export class AgendaService
         },
       };
     } catch (error) {
-      this.logger.error('Error al obtener turnos', error);
+      this.logger.error('Error on shift slots retrieval', error);
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Error al obtener turnos',
+        message: 'Error on shift slots retrieval',
         error: error?.message || error,
       });
     }
   }
 
   async findById(id: number) {
-    const turno = await this.agenda_slot.findUnique({ where: { id } });
+    const turno = await this.shift_slot.findUnique({ where: { id } });
 
     if (!turno) {
       throw new RpcException({
         status: HttpStatus.NOT_FOUND,
-        message: `Turno con ID ${id} no encontrado`,
+        message: `Shift with ID ${id} not found`,
       });
     }
 
     return turno;
   }
 
-  async update(id: number, data: UpdateTurnoDto) {
+  async update(id: number, data: UpdateShiftDto) {
     try {
-      return await this.agenda_slot.update({
+      return await this.shift_slot.update({
         where: { id },
         data,
       });
     } catch (error) {
-      this.logger.error(`Error al actualizar turno con ID ${id}`, error);
+      this.logger.error(`Error on shift ${id} update`, error);
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: `Error al actualizar turno con ID ${id}`,
+        message: `Error on shift ${id} update`,
         error: error?.message || error,
       });
     }
   }
 
-  async changeStatus(changeTurnoStatusDto: ChangeTurnoStatusDto) {
-    const { cirugiaId, status } = changeTurnoStatusDto;
-    const turno = await this.agenda_slot.findFirst({ where: { cirugiaId } });
+  async changeStatus(changeShiftStatusDto: ChangeShiftStatusDto) {
+    const { surgeryId: surgeryId, status } = changeShiftStatusDto;
+    const turno = await this.shift_slot.findFirst({ where: { surgeryId } });
 
     if (!turno) {
       throw new RpcException({
         status: HttpStatus.NOT_FOUND,
-        message: `Turno con cirugiaId ${cirugiaId} no encontrado`,
+        message: `Shift with ID ${surgeryId} not found`,
       });
     }
     if (turno.status === status) {
       return turno;
     }
 
-    await this.agenda_slot.updateMany({
-      where: { cirugiaId },
+    await this.shift_slot.updateMany({
+      where: { surgeryId },
       data: { status },
     });
 
-    return this.agenda_slot.findMany({ where: { cirugiaId } });
+    return this.shift_slot.findMany({ where: { surgeryId } });
   }
 
-  async remove(cirugiaId: number) {
-    const turnos = await this.agenda_slot.findMany({ where: { cirugiaId } });
+  async remove(surgeryId: number) {
+    const shifts = await this.shift_slot.findMany({ where: { surgeryId } });
 
-    if (!turnos || turnos.length === 0) {
+    if (!shifts || shifts.length === 0) {
       throw new RpcException({
         status: HttpStatus.NOT_FOUND,
-        message: `No se encontraron turnos con cirugiaId ${cirugiaId}`,
+        message: `No shifts found with surgeryId ${surgeryId}`,
       });
     }
 
     // Eliminar todos los slots con ese cirugiaId
-    await this.agenda_slot.updateMany({ where: { cirugiaId }, data: { status: 'AVAILABLE', cirugiaId: null} });
+    await this.shift_slot.updateMany({ where: { surgeryId }, data: { status: 'AVAILABLE', surgeryId: null} });
 
     return {
-      message: `Todos los turnos con cirugiaId ${cirugiaId} eliminados exitosamente`,
-      cantidad: turnos.length,
+      message: `Shifts with surgeryId ${surgeryId} successfully removed`,
+      cantidad: shifts.length,
     };
   }
 }

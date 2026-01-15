@@ -1,7 +1,7 @@
-import { AgendaStatus } from 'generated/prisma/client';
+import { ShiftStatus } from 'generated/prisma/client';
 
-export const AgendaStatusList = [
-  AgendaStatus.AVAILABLE,
-  AgendaStatus.BOOKED,
-  AgendaStatus.BLOCKED,
+export const ShiftStatusList = [
+  ShiftStatus.AVAILABLE,
+  ShiftStatus.BOOKED,
+  ShiftStatus.BLOCKED,
 ];

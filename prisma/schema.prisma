@@ -14,19 +14,21 @@ datasource db {
   provider = "postgresql"
 }
 
-enum AgendaStatus {
+enum ShiftStatus {
   AVAILABLE
   BOOKED
   BLOCKED
+	@@map("AgendaStatus")
 }
 
-model Agenda_slot {
+model Shift_slot {
   id          Int          @id @default(autoincrement())
   startTime   DateTime
   endTime     DateTime
-  status      AgendaStatus @default(BOOKED)
-  quirofanoId Int
-  cirugiaId   Int?
+  status      ShiftStatus @default(BOOKED)
+  operatingRoomId Int
+  surgeryId   Int?
   version     Int          @default(1)
   updatedAt   DateTime?     @updatedAt
+	@@map("Agenda_slot")
 }

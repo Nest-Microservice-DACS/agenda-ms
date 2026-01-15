@@ -6,14 +6,14 @@ import {
   IsOptional,
   IsPositive,
 } from 'class-validator';
-import { AgendaStatusList } from '../enum/agenda.enum';
-import { AgendaStatus } from 'generated/prisma/client';
+import { ShiftStatusList } from '../enum/agenda.enum';
+import { ShiftStatus } from 'generated/prisma/client';
 import { Type } from 'class-transformer';
 
-export class CreateTurnoDto {
+export class CreateShiftDto {
   @IsNumber()
   @IsPositive()
-  quirofanoId: number;
+  operatingRoomId: number;
 
   @IsDateString()
   @Type(() => Date)
@@ -29,7 +29,7 @@ export class CreateTurnoDto {
 
   @IsNumber()
   @IsPositive()
-  cirugiaId: number;
+  surgeryId: number;
 
   @IsNumber()
   @IsPositive()
